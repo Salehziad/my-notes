@@ -3,7 +3,7 @@
 > * ### civil engineer.
 > * ### 23 years old.
 > * ###  student in programming.
-> * ### java-script*** cource.
+> * ### ***java-script*** course.
 
 <br>
 
