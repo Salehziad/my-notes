@@ -14,7 +14,7 @@
 <br>
 
 ># about-paragraph : hackeernoon
->>### * practice biter than just watching and reading tutorials.
+>>* ### practice biter than just watching and reading tutorials.
 >> * ### there is a lot of resources to learning.
 >> * ### crash course is the best because they give us just what we need to learn whithout waste our time.
 >> * ### when you start with your own project you will have many benifits :
