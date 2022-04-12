@@ -8,9 +8,9 @@
 <br>
 
 >## communication-way
->> * ### [facebook](https://www.facebook.com/profile.php?id=100005955198338)
->> * ### [linkedin](https://www.linkedin.com/in/saleh-ziad-6b40a1214)
->> * ### +962785889613
+>> * ### [***facebook***](https://www.facebook.com/profile.php?id=100005955198338)
+>> * ### [***linkedin***](https://www.linkedin.com/in/saleh-ziad-6b40a1214)
+>> * ### ****+962785889613****
 <br>
 
 ># about-paragraph : hackeernoon
@@ -24,3 +24,9 @@
 >>> 4. make you know why this step and why and for what.
 >> * ### by learning step by step the effort will be great.
 >> * ### more learning more expariance.
+![](https://crypto.news/app/uploads/2018/11/Hackernoon-to-Introduce-their-own-Cryptocurrency.jpg)
+
+<br>
+
+# ***ramadan kareem***
+![](https://c.tenor.com/9JCdrsw-CVgAAAAd/wfp-ramadan-kareem.gif)
