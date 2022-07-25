@@ -1,182 +1,128 @@
 'use strict';
-const {
-    Users
-} = require('../../models/models.connection');
-const {
-    Companies
-} = require('../../models/models.connection');
-console.log("ssssssssssssssssssssssssqqqqq",Users,Companies)
-const express=require('express')
-const signupRoutes=express.Router();
-const {
-    v4: uuidv4
-} = require('uuid');
 
-signupRoutes.post('/user/signup',handleSignup);
-async function handleSignup(req, res, next) {
-    try {
-        const user = req.body
-        if (Object.keys(user).length === 0) {}
-        let x = user.displayName;
-        if (x.length === 0) {
-            res.status(403).send('no data entered')
-        }
-        let UuCode = uuidv4();
-        console.log({
-            UuCode
-        });
-        var hashed = await Users.beforeCreate(user);
-        let userRecord = await Users.create({
-            displayName: req.body.displayName,
-            email: req.body.email,
-            password: hashed,
-            role: req.body.role,
-            uuCode: UuCode
-        });
-        
-        let mailed = await Users.sendEmail(user);
-        // console.log({mailed});
-        const output = {
-            displayName: userRecord.displayName,
-            email: userRecord.email,
-            isVerify: userRecord.isVerify,
-            role: userRecord.role,
-            createdAt: userRecord.createdAt,
-            updatedAt: userRecord.updatedAt
-        };
-        // if (output) {
-        //     let logs = await signupUsers.create({
-        //         title: `user ${output.displayName} signup`,
-        //         name: output.displayName,
-        //         email: output.email,
-        //         role: output.role,
-        //         method: "local",
-        //         date: new Date().toJSON()
-        //     });
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const nodemailer = require("nodemailer");
+require('dotenv').config();
+const userModel = (sequelize, DataTypes) => {
+    const model = sequelize.define('client1', {
+        displayName: {
+            type: DataTypes.STRING,
+            allowNull: false,
+            unique: true
+        },
+        email: {
+            type: DataTypes.STRING,
+            allowNull: false,
+            unique: true
+        },
+        password: {
+            type: DataTypes.STRING,
+            allowNull: false,
+        },
+        role: {
+            type: DataTypes.ENUM('admin', 'client'),
+            defaultValue: 'client',
+        },
+        token: {
+            type: DataTypes.VIRTUAL,
+            get() {
+                return jwt.sign({
+                    displayName: this.displayName
+                }, process.env.SECRET);
+            }
+        }, //new
+        uuCode: {
+            type: DataTypes.STRING,
+            required: true,
+        },
+        isVerify: {
+            type: DataTypes.BOOLEAN,
+            defaultValue: false,
+        },
+        actions: {
+            type: DataTypes.VIRTUAL,
+            get() {
+                const acl = {
+                    client: ['read'],
+                    admin: ['read', 'create', 'update', 'delete'],
+                }
+                return acl[this.role];
+            }
+        },
+        // photos:{
+        //   type:DataTypes.STRING,
+        //   defaultValue:"https://lh3.googleusercontent.com/a/AItbvmmaqLrLZidPVZn_0Q6pP-hap-qUNHdo92tMyFNx=s96-c"
         // }
-        res.status(201).json(output);
-    } catch (e) {
-        console.error(e);
-        next(e);
-    }
-}
+    });
 
-signupRoutes.post('/companies/signup', handleSignupCompanies);
-async function handleSignupCompanies(req, res, next) {
-    // console.log("ffffffffffffff");
-    try {
-        const user = req.body;
-        console.log(user)
-        if (Object.keys(user).length === 0) {}
-        let x = req.body.displayName;
-        console.log({x});
-        if (x.length === 0) {
-            res.status(403).send('no data entered')
-        }
-        let UuCode = uuidv4();
-        console.log({
-            UuCode
-        });
-        // let mailed = await Companies.sendEmail(user);
-        var hashed = await Companies.beforeCreate(user);
-        let userRecord = await Companies.create({
-            displayName: req.body.displayName,
-            email: req.body.email,
-            location:req.body.location,
-            password: hashed,
-            phoneNumber: req.body.phoneNumber,
-            role: req.body.role,
-            uuCode: UuCode
-        });
-        // console.log({userRecord});
-        let mailed = await Companies.sendEmail(user);
-        const output = {
-            displayName: userRecord.displayName,
-            email: userRecord.email,
-            location:userRecord.location,
-            phoneNumber: userRecord.phoneNumber,
-            isVerify: userRecord.isVerify,
-            role: userRecord.role,
-            createdAt: userRecord.createdAt,
-            updatedAt: userRecord.updatedAt
-        };
-        // if (output) {
-        //     let logs = await signupUsers.create({
-        //         title: `user ${output.displayName} signup`,
-        //         name: output.displayName,
-        //         email: output.email,
-        //         role: output.role,
-        //         method: "local",
-        //         date: new Date().toJSON()
-        //     });
-        // }
-        res.status(201).json(output);
-    } catch (e) {
-        // console.error(e);
-        next(e);
-    }
-}
-module.exports =signupRoutes;
-******////////////////////////////////////////////////////////////
-'use strict';
-const {
-    Users
-} = require('../../models/models.connection');
-const {
-    Companies
-} = require('../../models/models.connection');
-const express = require('express');
-const verifyRoute = express.Router();
-verifyRoute.post('/verify', verifyCode);
-async function verifyCode(req, res, next) {
-    try {
-        let code = req.body.code;
-        let user = await Users.findOne({
+    model.beforeCreate = async function (user) { // for sign up
+        let hashedPass = await bcrypt.hash(user.password, 10);
+        return hashedPass;
+    };
+
+    model.sendEmail = async function (user) {  //sign up send code
+        const email = user.email;
+        let userMail = await this.findOne({
             where: {
-                uuCode: code
+                email: email
             }
         })
-        let company = await Companies.findOne({
+        let code = userMail.uuCode;
+        console.log('email', {
+            code
+        });
+        let transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: process.env.EMAIL,
+                pass: process.env.PASS 
+            },
+            port: 465,
+            host: 'stmp.gmail.com'
+        })
+        const msg = {
+            from: 'salehziad1999@gmail.com', // sender address
+            to: `${email}`, // list of receivers
+            subject: "Sign Up validation", // Subject line
+            text: `Long time no see welcome to our server use this code ${code} to verify your email here 'https://salehziad-projects.netlify.app/verify'`, // plain text body
+        }
+        // const info = await transporter.sendMail(msg);
+        console.log({code});
+    }
+
+    model.authenticateBasic = async function (displayName, password) {
+        const user = await this.findOne({
             where: {
-                uuCode: code
+                displayName: displayName
             }
         });
-        let usercode = null
-        if (!user) {
-            usercode = company.uuCode
-            if (code === usercode) {
-                let newUser = await Users.update({
-                    isVerify: 'true'
-                }, {
-                    where: {
-                        displayName: company.displayName
-                    }
-                })
-                if (newUser) {
-                    res.send('verified')
-                    next();
-                }
-            }
+        const valid = await bcrypt.compare(password, user.password);
+        if (valid) {
+            return user;
         }
-        if (!company) {
-            usercode = user.uuCode
-            if (code === usercode) {
-                let newUser = await Users.update({
-                    isVerify: 'true'
-                }, {
-                    where: {
-                        displayName: user.displayName
-                    }
-                })
-                if (newUser) {
-                    res.send('verified')
-                    next();
-                }
-            }
-        }
-    } catch (e) {
-        res.status(500).send(`the code is not correct`)
-        console.log(e);
+        throw new Error('Invalid User');
     }
+
+    model.authenticateToken = async function (token) {
+        try {
+            const parsedToken = jwt.verify(token, process.env.SECRET);
+            const user = await this.findOne({
+                where: {
+                    displayName: parsedToken.displayName
+                }
+            });
+            if (user) {
+                return user;
+            }
+            throw new Error("User Not Found");
+        } catch (e) {
+            throw new Error(e.message)
+        }
+    }
+
+    return model;
 }
-module.exports = verifyRoute
+
+module.exports = userModel;
+
